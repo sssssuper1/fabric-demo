@@ -1,7 +1,10 @@
 import { fabric } from 'fabric';
 import { CommandType } from './command';
+import { FilterType, FilterOptions } from './component/filter';
+import { FlipType } from './component/flip';
 import { Graphics } from './graphics';
 import { Invoker } from './invoker';
+import { calculateCanvasSizeByImage } from './utils';
 
 interface ImageEitorConstructor {
   canvasElement: HTMLCanvasElement | string;
@@ -10,8 +13,6 @@ interface ImageEitorConstructor {
 }
 
 export type Mode = 'normal' | 'crop' | 'mosaic';
-
-export type Filter = 'Brightness';
 
 const squareEdgeLength  = 10;
 
@@ -38,7 +39,7 @@ export default class ImageEditor {
     this.maxWidth = maxWidth;
     this.maxHeight = maxHeight;
 
-    this.graphics = new Graphics(this.canvas);
+    this.graphics = new Graphics(this.canvas, maxWidth, maxHeight);
     this.invoker = new Invoker();
   }
 
@@ -49,8 +50,7 @@ export default class ImageEditor {
       try {
         fabric.Image.fromURL(url, imgInstance => {
           this.image = imgInstance;
-          const size = this.calculateCanvasSizeByImage(imgInstance.width || 0, imgInstance.height || 0);
-          console.log(size)
+          const size = calculateCanvasSizeByImage(imgInstance.width || 0, imgInstance.height || 0, this.maxWidth, this.maxHeight);
           imgInstance.scale(size.scale);
           this.setCanvasSize(size);
           this.graphics.setImage(imgInstance);
@@ -60,6 +60,8 @@ export default class ImageEditor {
           });
         }, {
           crossOrigin: 'anonymous',
+          centeredRotation: true,
+          centeredScaling: true,
         });
       } catch (err) {
         reject(err);
@@ -67,51 +69,35 @@ export default class ImageEditor {
     });
   }
 
-  calculateCanvasSizeByImage(width: number, height: number) {
-    if (!this.maxWidth || !this.maxHeight) return { width, height, scale: 1 };
-
-    const scale = Math.min(this.maxWidth / width, this.maxHeight / height);
-
-    return {
-      width: Math.floor(width * scale),
-      height: Math.floor(height * scale),
-      scale,
-    };
-  }
-
   setCanvasSize(options: fabric.ICanvasDimensions) {
     this.canvas.setDimensions(options);
+  }
+
+  getCanvasSize() {
+    return { width: this.canvas.getWidth(), height: this.canvas.getHeight() };
   }
 
   setMode(mode: Mode) {
     this.mode = mode;
   }
 
-  setFilter(filter: Filter, options?: any) {
+  setFilter(filter: FilterType, options?: FilterOptions) {
     this.execute('applyFilter', filter, options);
   }
 
+  flip(type: FlipType) {
+    this.execute('flip', type);
+  }
+
   rotate(angle: number) {
-    if (!this.image) return;
-    this.image?.rotate(((this.image.angle || 0) + angle) % 360);
-
-    this.reRender();
+    this.execute('rotate', angle);
   }
 
-  flip() {
-    if (!this.image) return;
-    this.image.flipX = !this.image.flipX;
-
-    this.reRender();
-  }
+  // test >>>>>>>>>>>
 
   addMosaic(graininess = 20) {
     this.squareEdgeLength = graininess;
     this.makeGrid(100, 80, 150, 150);
-  }
-
-  private reRender() {
-    this.canvas.renderAll();
   }
 
   // mosaic
@@ -152,8 +138,12 @@ export default class ImageEditor {
     ctx.fill()
   }
 
+  // <<<<<<<<<<<< test
 
-  // production
+  private reRender() {
+    this.canvas.renderAll();
+  }
+
   private execute(type: CommandType, ...args: any[]) {
     if (!this.image) return;
     this.invoker.execute(this.graphics, type, args);

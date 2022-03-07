@@ -1,8 +1,20 @@
 import { fabric } from 'fabric';
-import { Graphics } from '../graphics';
-import { BaseComponent } from ".";
+import { Graphics } from '../../graphics';
+import { BaseComponent } from "..";
 
-export type FilterType = 'Brightness';
+// 注册滤镜
+import './redify';
+import './sharpen';
+
+export type FilterType = 'Brightness' | 'Contrast' | 'Saturation' | 'Redify' | 'Sharpen';
+
+export type FilterOptions = {
+  brightness: number; // -1 ~ 1
+} | {
+  contrast?: number; // -1 ~ 1
+} | {
+  saturation?: number; // -1 ~ 1
+}
 
 export interface BaseFilterConfig {
   type: FilterType;
@@ -19,6 +31,7 @@ export class Filter extends BaseComponent {
     if (current) {
       current.setOptions(options);
     } else {
+      // @ts-ignore
       this.image.filters?.push(new fabric.Image.filters[type](options));
     }
 

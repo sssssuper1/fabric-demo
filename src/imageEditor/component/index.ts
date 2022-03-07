@@ -1,6 +1,6 @@
 import { Graphics } from '../graphics';
 
-export type ComponentType = 'FILTER';
+export type ComponentType = 'FILTER' | 'FLIP' | 'ROTATION';
 
 export class BaseComponent {
   name: ComponentType;
