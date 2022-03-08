@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ImageEditor from './imageEditor/imageEditor';
-import Cropper, { CropperProps } from './Cropper';
+import Cropper, { Rect } from './Cropper';
 import './App.css';
 
 const demo = 'https://s.newscdn.cn/file/2022/02/17ecd7bb-6475-4dad-8662-af0f935cb60a.jpeg';
@@ -8,10 +8,10 @@ const demo = 'https://s.newscdn.cn/file/2022/02/17ecd7bb-6475-4dad-8662-af0f935c
 function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
   const imageEditor = useRef<ImageEditor | null>(null);
+  const transformRef = useRef<HTMLDivElement>(null);
 
-  const [dimension, setDimension] = useState<CropperProps>();
+  const [dimension, setDimension] = useState<Rect>();
 
   const addFilter = () => {
     imageEditor.current?.setFilter('Sharpen');
@@ -52,32 +52,9 @@ function App() {
     });
   };
 
-  // const initCropper = () => {
-  //   const cropper = new Cropper(imgRef.current!, {
-  //     viewMode: 1,
-  //     dragMode: 'move',
-  //     movable: true,
-  //     cropBoxMovable: false,
-  //     zoomOnWheel: false,
-  //     guides: false,
-  //     rotatable: false,
-  //     responsive: false,
-  //     restore: false,
-  //     center: false,
-  //     background: false,
-  //     toggleDragModeOnDblclick: false,
-  //     autoCropArea: 1,
-  //     crop(event) {
-  //       console.log(event.detail.x);
-  //       console.log(event.detail.y);
-  //       console.log(event.detail.width);
-  //       console.log(event.detail.height);
-  //       console.log(event.detail.rotate);
-  //       console.log(event.detail.scaleX);
-  //       console.log(event.detail.scaleY);
-  //     },
-  //   });
-  // };
+  const move = useCallback((x: number, y: number) => {
+    transformRef.current!.style.transform = `translate(${x}px, ${y}px)`;
+  }, []);
 
   useEffect(() => {
     const { clientWidth, clientHeight } = contentRef.current!;
@@ -104,9 +81,10 @@ function App() {
       </div>
       <div className='body'>
         <div className='content' ref={contentRef}>
-          <canvas className='canvas' ref={canvasRef} />
-          <Cropper {...dimension} />
-          {/* <img className='canvas' ref={imgRef} src={demo} /> */}
+          <div ref={transformRef}>
+            <canvas className='canvas' ref={canvasRef} />
+          </div>
+          {dimension && <Cropper dimension={dimension} onMove={move} />}
         </div>
       </div>
 

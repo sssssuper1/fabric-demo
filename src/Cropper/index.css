@@ -2,6 +2,13 @@
   border-color: #2775f6;
   border-style: solid;
   position: absolute;
+  box-shadow: 0 0 0 10000px rgb(238 242 248 / 90%);
+}
+
+.cropper-inner {
+  width: 100%;
+  height: 100%;
+  cursor: move;
 }
 
 .cropper-grip {
