@@ -11,6 +11,7 @@ export interface Rect {
 export interface IProps {
   dimension: Rect;
   onMove(x: number, y: number): void;
+  onCrop(rect: Rect): void;
 }
 
 type Sides = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se" | "move";
@@ -66,7 +67,7 @@ const getDisplayStyle = (target: Sides, dragging?: Sides) => {
 };
 
 const getMaxOffset = (outer: Rect, inner: Rect): Num4 => {
-  console.log({ outer, inner });
+  console.log(outer, inner);
   const dxMin = outer.left - inner.left - borderWidth;
   const dxMax = (outer.width - inner.width) - (inner.left - outer.left) - borderWidth;
   const dyMin = outer.top - inner.top - borderWidth;
@@ -86,6 +87,7 @@ const getLimitedOuterDxDy = (dx: number, dy: number, limit: Num4): Num2 => {
 const Cropper: React.FC<IProps> = ({
   dimension,
   onMove,
+  onCrop,
 }) => {
   const [boxStyle] = useState({
     width: dimension.width,
@@ -148,6 +150,7 @@ const Cropper: React.FC<IProps> = ({
       boxStyle.height = boxRef.current!.clientHeight;
       boxStyle.top = converPxToNumber(boxRef.current?.style.top);
       boxStyle.left = converPxToNumber(boxRef.current?.style.left);
+      onCrop({ ...boxStyle });
     }
     setDragging(undefined);
     document.removeEventListener('mousemove', mouseMoveHandler);
