@@ -9,4 +9,6 @@
 
 .group {
   position: relative;
+  /* transition: transform .2s; */
+  will-change: transform;
 }

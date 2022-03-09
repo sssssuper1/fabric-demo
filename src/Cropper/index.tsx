@@ -1,6 +1,11 @@
 import React, { memo, useRef, useState } from 'react';
 import './index.css';
 
+export interface Boundary {
+  maxWidth: number;
+  maxHeight: number;
+}
+
 export interface Rect {
   width: number;
   height: number;
@@ -9,9 +14,9 @@ export interface Rect {
 }
  
 export interface IProps {
-  dimension: Rect;
+  dimension: Rect & Boundary;
   onMove(x: number, y: number): void;
-  onCrop(rect: Rect): void;
+  onCrop(rect: ReturnType<typeof getScaleAndTranslation>): void;
 }
 
 type Sides = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se" | "move";
@@ -67,7 +72,6 @@ const getDisplayStyle = (target: Sides, dragging?: Sides) => {
 };
 
 const getMaxOffset = (outer: Rect, inner: Rect): Num4 => {
-  console.log(outer, inner);
   const dxMin = outer.left - inner.left - borderWidth;
   const dxMax = (outer.width - inner.width) - (inner.left - outer.left) - borderWidth;
   const dyMin = outer.top - inner.top - borderWidth;
@@ -82,6 +86,31 @@ const getLimitedOuterDxDy = (dx: number, dy: number, limit: Num4): Num2 => {
   if (dy > -limit[2]) dy = -limit[2];
 
   return [dx, dy];
+};
+
+const getScale = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+  return Math.min(maxWidth / width, maxHeight / height);
+};
+
+const getScaleAndTranslation = (inner: Rect, outer: Rect & Boundary) => {
+  const { maxWidth, maxHeight, width, height } = outer;
+
+  const scale = getScale(inner.width, inner.height, maxWidth, maxHeight);
+  const w = Math.round(inner.width * scale);
+  const h = Math.round(inner.height * scale);
+  const t = Math.round(inner.top * scale);
+  const l = Math.round(inner.left * scale);
+
+  const wOffset = (w - width) / 2;
+  const hOffset = (h - height) / 2;
+
+  const outLeft = width * (scale - 1) / 2 - l;
+  const outTop = height * (scale - 1) / 2 - t;
+
+  const x = Math.round(outLeft - wOffset);
+  const y = Math.round(outTop - hOffset);
+
+  return { x, y, scale };
 };
 
 const Cropper: React.FC<IProps> = ({
@@ -106,6 +135,9 @@ const Cropper: React.FC<IProps> = ({
 
   const limitRef = useRef<Num4>([0, 0, 0, 0]);
 
+  const realTimeScaleRef = useRef(1);
+  const stageScaleRef = useRef(1);
+
   const mouseDownHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
     positinoRef.current.x = e.clientX;
     positinoRef.current.y = e.clientY;
@@ -123,8 +155,14 @@ const Cropper: React.FC<IProps> = ({
   };
 
   const mouseMoveHandler = (e: MouseEvent) => {
-    let dx = e.clientX - positinoRef.current.x;
-    let dy = e.clientY - positinoRef.current.y;
+    let dScale = 1;
+    if (stageScaleRef.current > 1) {
+      // 放大时反比例倍速扩大
+      dScale = realTimeScaleRef.current < stageScaleRef.current ? (1 / stageScaleRef.current) : stageScaleRef.current;
+    }
+
+    let dx = (e.clientX - positinoRef.current.x) / dScale;
+    let dy = (e.clientY - positinoRef.current.y) / dScale;
 
     if (positinoRef.current.side === 'move') {
       [dx, dy] = getLimitedOuterDxDy(dx, dy, limitRef.current);
@@ -138,6 +176,13 @@ const Cropper: React.FC<IProps> = ({
       boxRef.current!.style.height = `${rect.height}px`;
       boxRef.current!.style.top = `${rect.top}px`;
       boxRef.current!.style.left = `${rect.left}px`;
+
+      const newScale = getScale(rect.width, rect.height, dimension.maxWidth, dimension.maxHeight);
+      realTimeScaleRef.current = newScale;
+
+      if (stageScaleRef.current > 1 && newScale < stageScaleRef.current) {
+        commitMovement(rect);
+      }
     }
   };
 
@@ -150,12 +195,21 @@ const Cropper: React.FC<IProps> = ({
       boxStyle.height = boxRef.current!.clientHeight;
       boxStyle.top = converPxToNumber(boxRef.current?.style.top);
       boxStyle.left = converPxToNumber(boxRef.current?.style.left);
-      onCrop({ ...boxStyle });
+      stageScaleRef.current = commitMovement(boxStyle).scale;
     }
     setDragging(undefined);
     document.removeEventListener('mousemove', mouseMoveHandler);
     document.removeEventListener('mouseup', mouseUpHandler);
   };
+
+  const commitMovement = (rect: Rect) => {
+    const transformInfo = getScaleAndTranslation(rect, dimension);
+    onCrop(transformInfo);
+    // scaleRef.current = transformInfo.scale;
+    return transformInfo;
+  };
+
+  // const throttledCommitMovement = throttle(commitMovement, 100);
 
   return (
     <div
