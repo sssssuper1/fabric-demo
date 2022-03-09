@@ -2,8 +2,9 @@ import { Graphics } from "../graphics";
 import { applyFilterCommand } from './applyFilter';
 import { flipCommand } from "./flip";
 import { rotateCommand } from "./rotate";
+import { cropCommand } from './crop';
 
-export type CommandType = 'applyFilter' | 'flip' | 'rotate';
+export type CommandType = 'applyFilter' | 'flip' | 'rotate' | 'crop';
 
 export interface CommandConfig {
   name: CommandType;
@@ -36,6 +37,7 @@ const CommandConfigMap: Record<CommandType, CommandConfig> = {
   applyFilter: applyFilterCommand,
   flip: flipCommand,
   rotate: rotateCommand,
+  crop: cropCommand,
 };
 
 export const getCommandConfigByType = (type: CommandType) => CommandConfigMap[type];

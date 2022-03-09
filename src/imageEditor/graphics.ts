@@ -1,4 +1,5 @@
 import { fabric } from 'fabric';
+import { Cropper } from './component/cropper';
 import { Filter } from './component/filter';
 import { Filp } from './component/flip';
 import { Rotation } from './component/rotation';
@@ -12,6 +13,7 @@ export class Graphics {
     FILTER: new Filter(this),
     FLIP: new Filp(this),
     ROTATION: new Rotation(this),
+    CROPPER: new Cropper(this),
   };
 
   constructor(canvas: fabric.Canvas, maxWidth?: number, maxHeight?: number) {

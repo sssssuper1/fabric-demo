@@ -93,7 +93,20 @@ export default class ImageEditor {
     this.execute('rotate', angle);
   }
 
+  crop(x: number, y: number, w: number, h: number) {
+    this.execute('crop', { x, y, w, h });
+  }
+
   // test >>>>>>>>>>>
+
+  test() {
+    // this.image!.left = -1091;
+    // this.image!.top = -768;
+    // this.image!.top = 0;
+    this.image!.scale(1);
+    this.image!.rotate(90);
+    this.reRender();
+  }
 
   addMosaic(graininess = 20) {
     this.squareEdgeLength = graininess;

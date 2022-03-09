@@ -16,7 +16,8 @@ export interface Rect {
 export interface IProps {
   dimension: Rect & Boundary;
   onMove(x: number, y: number): void;
-  onCrop(rect: ReturnType<typeof getScaleAndTranslation>): void;
+  onCommit(rect: ReturnType<typeof getScaleAndTranslation>): void;
+  onCrop(rect: Rect): void;
 }
 
 type Sides = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se" | "move";
@@ -116,6 +117,7 @@ const getScaleAndTranslation = (inner: Rect, outer: Rect & Boundary) => {
 const Cropper: React.FC<IProps> = ({
   dimension,
   onMove,
+  onCommit,
   onCrop,
 }) => {
   const [boxStyle] = useState({
@@ -197,6 +199,7 @@ const Cropper: React.FC<IProps> = ({
       boxStyle.left = converPxToNumber(boxRef.current?.style.left);
       stageScaleRef.current = commitMovement(boxStyle).scale;
     }
+    onCrop(boxStyle);
     setDragging(undefined);
     document.removeEventListener('mousemove', mouseMoveHandler);
     document.removeEventListener('mouseup', mouseUpHandler);
@@ -204,7 +207,7 @@ const Cropper: React.FC<IProps> = ({
 
   const commitMovement = (rect: Rect) => {
     const transformInfo = getScaleAndTranslation(rect, dimension);
-    onCrop(transformInfo);
+    onCommit(transformInfo);
     // scaleRef.current = transformInfo.scale;
     return transformInfo;
   };

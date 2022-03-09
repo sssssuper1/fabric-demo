@@ -8,41 +8,53 @@ function App() {
   const imageEditor = useRef<ImageEditorRef>(null);
 
   const addFilter = () => {
-    imageEditor.current?.editor.setFilter('Sharpen');
+    imageEditor.current?.getEditor().setFilter('Sharpen');
   };
 
   const rotate = () => {
-    imageEditor.current?.editor.rotate(270);
+    imageEditor.current?.getEditor().rotate(20);
   };
 
   const flipX = () => {
-    imageEditor.current?.editor.flip('x');
+    imageEditor.current?.getEditor().flip('x');
   };
 
   const flipY = () => {
-    imageEditor.current?.editor.flip('y');
+    imageEditor.current?.getEditor().flip('y');
   };
 
   const mosaic = () => {
-    imageEditor.current?.editor.addMosaic();
+    imageEditor.current?.getEditor().addMosaic();
   };
 
   const undo = () => {
-    imageEditor.current?.editor.undo();
+    imageEditor.current?.getEditor().undo();
   };
 
   const redo = () => {
-    imageEditor.current?.editor.redo();
+    imageEditor.current?.getEditor().redo();
   };
 
   const crop = () => {
-    imageEditor.current?.crop();
+    imageEditor.current?.startCrop();
+  };
+
+  const applyCrop = () => {
+    imageEditor.current?.applyCrop();
+  };
+
+  const test = () => {
+    imageEditor.current?.getEditor().test();
   };
 
   return (
     <div className='container'>
       <div className='header'>
+        <button onClick={test}>test</button>
+        &nbsp;
         <button onClick={crop}>crop</button>
+        <button onClick={applyCrop}>apply</button>
+        &nbsp;
         <button onClick={addFilter}>filter</button>
         <button onClick={rotate}>rotate</button>
         <button onClick={flipX}>flipX</button>
