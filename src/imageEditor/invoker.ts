@@ -6,10 +6,11 @@ export class Invoker {
   private redoStack: Command[] = [];
   private isLocked = false; // TODO
 
-  execute(graphics: Graphics, name: CommandType, args: any[]) {
+  execute(graphics: Graphics, name: CommandType, track: boolean, args: any[]) {
     const cmd = new Command(
       getCommandConfigByType(name),
       graphics,
+      track,
       args,
     );
 
@@ -33,7 +34,9 @@ export class Invoker {
 
   private invokeExecution(cmd: Command) {
     cmd.execute();
-    this.undoStack.push(cmd);
+    if (cmd.track) {
+      this.undoStack.push(cmd);
+    }
   }
 
   private nvokeUndo(cmd: Command) {

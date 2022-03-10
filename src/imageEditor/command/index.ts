@@ -16,9 +16,11 @@ export class Command {
   graphics: Graphics;
   undoData: Record<string, any> = { };
   args: any[];
+  track: boolean;
   config: CommandConfig;
-  constructor(config: CommandConfig, graphics: Graphics, args: any) {
+  constructor(config: CommandConfig, graphics: Graphics, track: boolean, args: any) {
     this.graphics = graphics;
+    this.track = track;
     this.args = args;
 
     this.config = config;

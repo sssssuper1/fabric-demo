@@ -97,8 +97,8 @@ export default class ImageEditor {
   }
 
   crop(x: number, y: number, w: number, h: number) {
-    this.execute('crop', { x, y, w, h });
     this.setMode('normal');
+    this.execute('crop', { x, y, w, h });
   }
 
   addEventListener(name: EventType, handler: Function) {
@@ -171,7 +171,8 @@ export default class ImageEditor {
 
   private execute(type: CommandType, ...args: any[]) {
     if (!this.image) return;
-    this.invoker.execute(this.graphics, type, args);
+    const track = this.mode !== 'crop';
+    this.invoker.execute(this.graphics, type, track, args);
   }
 
   undo() {
