@@ -7,14 +7,18 @@ export class Rotation extends BaseComponent {
     super('FLIP', graphics);
   }
 
-  rotate(angle: number) {
-    const newAngle = ((this.image.angle || 0) + angle) % 360;
+  rotate(angle: number, saveCanvasStatus?: boolean) {
+    let newAngle = ((this.image.angle || 0) + angle) % 360;
+    if (newAngle < 0) newAngle += 360;
     this.image.centeredRotation = true;
     this.image.centeredScaling = true;
     this.calcImageSizeAfterRotate(newAngle);
     this.image.rotate(newAngle);
     this.canvas.renderAll();
     
+    if (saveCanvasStatus) {
+      this.graphics.saveCanvasStatus();
+    }
   }
 
   private calcImageSizeAfterRotate(angle: number) {
@@ -30,7 +34,8 @@ export class Rotation extends BaseComponent {
     const outHeight = Math.floor(Math.sin(_angle) * width + Math.cos(_angle) * height);
 
     const size = calculateCanvasSizeByImage(isDiagonal ? outWidth : outHeight, isDiagonal ? outHeight : outWidth, maxWidth, maxHeight);
-    this.canvas.setDimensions(size);
+
+    this.graphics.setCanvasSize(size);
     this.image.scale(size.scale).center();
   }
 }

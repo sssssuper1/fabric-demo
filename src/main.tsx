@@ -27,6 +27,23 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
   const [dimension, setDimension] = useState<Rect & Boundary>();
   const [pause, setPause] = useState(true);
 
+  const resetCropStatus = useCallback(() => {
+    transformRef.current!.style.transform = 'none';
+    groupRef.current!.style.transform = 'none';
+  }, []);
+
+  const onCanvasSizeChange = useCallback(({ width, height }: any) => {
+    setDimension({
+      top: 0,
+      left: 0,
+      width,
+      height,
+      maxWidth: contentRef.current!.clientWidth,
+      maxHeight: contentRef.current!.clientHeight,
+    });
+    resetCropStatus();
+  }, [resetCropStatus]);
+
   const startCrop = useCallback(() => {
     const { width, height } = imageEditor.current!.getCanvasSize();
     imageEditor.current?.setMode('crop');
@@ -39,7 +56,8 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
       maxHeight: contentRef.current!.clientHeight,
     });
     setPause(false);
-  }, []);
+    imageEditor.current?.addEventListener('sizeChange', onCanvasSizeChange);
+  }, [onCanvasSizeChange]);
 
   const onMove = useCallback((x: number, y: number) => {
     transformRef.current!.style.transform = `translate(${x}px, ${y}px)`;
@@ -57,9 +75,10 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
     if (!rectRef.current) return;
 
     const { left, top, width, height } = rectRef.current;
+    imageEditor.current?.removeEventListener('sizeChange', onCanvasSizeChange);
     imageEditor.current?.crop(left, top, width, height);
     setPause(true);
-  }, []);
+  }, [onCanvasSizeChange]);
 
   useEffect(() => {
     if (imageEditor.current) return;
@@ -82,7 +101,7 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
   return (
     <div className="content" ref={contentRef}>
       <div className={`group ${pause ? 'pause' : ''}`} ref={groupRef}>
-        <div  className={`${pause ? 'pause' : ''}`} ref={transformRef}>
+        <div className={`${pause ? 'pause' : ''}`} ref={transformRef}>
           <canvas ref={canvasRef} />
         </div>
         {dimension && (

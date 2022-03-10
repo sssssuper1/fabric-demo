@@ -2,7 +2,7 @@ import { fabric } from 'fabric';
 import { CommandType } from './command';
 import { FilterType, FilterOptions } from './component/filter';
 import { FlipType } from './component/flip';
-import { Graphics } from './graphics';
+import { Graphics, EventType } from './graphics';
 import { Invoker } from './invoker';
 import { calculateCanvasSizeByImage } from './utils';
 
@@ -70,7 +70,7 @@ export default class ImageEditor {
   }
 
   setCanvasSize(options: fabric.ICanvasDimensions) {
-    this.canvas.setDimensions(options);
+    this.graphics.setCanvasSize(options);
   }
 
   getCanvasSize() {
@@ -93,12 +93,20 @@ export default class ImageEditor {
   }
 
   rotate(angle: number) {
-    this.execute('rotate', angle);
+    this.execute('rotate', angle, this.mode === 'crop');
   }
 
   crop(x: number, y: number, w: number, h: number) {
     this.execute('crop', { x, y, w, h });
     this.setMode('normal');
+  }
+
+  addEventListener(name: EventType, handler: Function) {
+    this.graphics.addEventListener(name, handler);
+  }
+
+  removeEventListener(name: EventType, handler: Function) {
+    this.graphics.removeEventListener(name, handler);
   }
 
   // test >>>>>>>>>>>

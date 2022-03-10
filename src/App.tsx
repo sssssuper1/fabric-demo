@@ -12,7 +12,7 @@ function App() {
   };
 
   const rotate = () => {
-    imageEditor.current?.getEditor().rotate(20);
+    imageEditor.current?.getEditor().rotate(60);
   };
 
   const flipX = () => {

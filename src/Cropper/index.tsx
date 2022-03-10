@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import './index.css';
 
 export interface Boundary {
@@ -28,6 +28,13 @@ type Num4 = [number, number, number, number];
 type Num2 = [number, number];
 
 const borderWidth = 2;
+
+const initBoxSize = (dimension: Rect) => ({
+  width: dimension.width,
+  height: dimension.height,
+  top: dimension.top - borderWidth,
+  left: dimension.left - borderWidth,
+});
 
 const calculateDimensino = (dx: number, dy: number, current: Rect, side: Sides, limit: Num4) => {
   const rect = { ...current };
@@ -122,14 +129,9 @@ const Cropper: React.FC<IProps> = ({
   onCommit,
   onCrop,
 }) => {
-  const [boxStyle] = useState({
-    width: dimension.width,
-    height: dimension.height,
-    top: dimension.top - borderWidth,
-    left: dimension.left - borderWidth,
-  });
-
   const [dragging, setDragging] = useState<Sides>();
+
+  const boxStyle = useRef(initBoxSize(dimension));
 
   const boxRef = useRef<HTMLDivElement>(null);
   const positinoRef = useRef<{ x: number, y: number, side?: Sides }>({ x: 0, y: 0});
@@ -142,6 +144,13 @@ const Cropper: React.FC<IProps> = ({
   const realTimeScaleRef = useRef(1);
   const stageScaleRef = useRef(1);
 
+  const moveBox = useCallback((rect: Rect) => {
+    boxRef.current!.style.width = `${rect.width}px`;
+    boxRef.current!.style.height = `${rect.height}px`;
+    boxRef.current!.style.top = `${rect.top}px`;
+    boxRef.current!.style.left = `${rect.left}px`;
+  }, []);
+
   const mouseDownHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
     positinoRef.current.x = e.clientX;
     positinoRef.current.y = e.clientY;
@@ -151,7 +160,7 @@ const Cropper: React.FC<IProps> = ({
       left: dimension.left + outPosRef.current.x,
       width: dimension.width,
       height: dimension.height,
-    }, boxStyle);
+    }, boxStyle.current);
 
     setDragging(positinoRef.current.side);
     document.addEventListener('mousemove', mouseMoveHandler);
@@ -174,12 +183,8 @@ const Cropper: React.FC<IProps> = ({
       outTempRef.current.y = dy;
       onMove(outPosRef.current.x + dx, outPosRef.current.y + dy);
     } else {
-      const rect = calculateDimensino(dx, dy, boxStyle, positinoRef.current.side!, limitRef.current);
-
-      boxRef.current!.style.width = `${rect.width}px`;
-      boxRef.current!.style.height = `${rect.height}px`;
-      boxRef.current!.style.top = `${rect.top}px`;
-      boxRef.current!.style.left = `${rect.left}px`;
+      const rect = calculateDimensino(dx, dy, boxStyle.current, positinoRef.current.side!, limitRef.current);
+      moveBox(rect);
 
       const newScale = getScale(rect.width, rect.height, dimension.maxWidth, dimension.maxHeight);
       realTimeScaleRef.current = newScale;
@@ -195,13 +200,13 @@ const Cropper: React.FC<IProps> = ({
       outPosRef.current.x += outTempRef.current.x;
       outPosRef.current.y += outTempRef.current.y;
     } else {
-      boxStyle.width = boxRef.current!.clientWidth;
-      boxStyle.height = boxRef.current!.clientHeight;
-      boxStyle.top = converPxToNumber(boxRef.current?.style.top);
-      boxStyle.left = converPxToNumber(boxRef.current?.style.left);
-      stageScaleRef.current = commitMovement(boxStyle).scale;
+      boxStyle.current.width = boxRef.current!.clientWidth;
+      boxStyle.current.height = boxRef.current!.clientHeight;
+      boxStyle.current.top = converPxToNumber(boxRef.current?.style.top);
+      boxStyle.current.left = converPxToNumber(boxRef.current?.style.left);
+      stageScaleRef.current = commitMovement(boxStyle.current).scale;
     }
-    onCrop(boxStyle);
+    onCrop(boxStyle.current);
     setDragging(undefined);
     document.removeEventListener('mousemove', mouseMoveHandler);
     document.removeEventListener('mouseup', mouseUpHandler);
@@ -212,6 +217,13 @@ const Cropper: React.FC<IProps> = ({
     onCommit(transformInfo);
     return transformInfo;
   };
+
+  useEffect(() => {
+    boxStyle.current = initBoxSize(dimension);
+    moveBox(boxStyle.current);
+    realTimeScaleRef.current = 1;
+    stageScaleRef.current = 1;
+  }, [moveBox, dimension]);
 
   return (
     <div

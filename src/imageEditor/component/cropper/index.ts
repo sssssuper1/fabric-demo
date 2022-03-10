@@ -26,7 +26,7 @@ export class Cropper extends BaseComponent {
       top: reset ? y : ((this.image.top || 0) - y) * size.scale,
     });
     this.image.scale(scale || size.scale * currentScale);
-    this.canvas.setDimensions(size);
+    this.graphics.setCanvasSize(size);
     this.canvas.renderAll();
   }
 

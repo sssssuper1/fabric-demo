@@ -4,6 +4,8 @@ import { Filter } from './component/filter';
 import { Filp } from './component/flip';
 import { Rotation } from './component/rotation';
 
+export type EventType = 'sizeChange';
+
 export class Graphics {
   canvas: fabric.Canvas;
   image?: fabric.Image;
@@ -11,6 +13,10 @@ export class Graphics {
   maxHeight?: number;
 
   private canvasStatus?: fabric.ICanvasDimensions & { scale: number };
+
+  private listeners: Record<EventType, Function[]> = {
+    sizeChange: [],
+  };
 
   componentsMap = {
     FILTER: new Filter(this),
@@ -37,6 +43,11 @@ export class Graphics {
     return this.image!;
   }
 
+  setCanvasSize(options: fabric.ICanvasDimensions) {
+    this.canvas.setDimensions(options);
+    this.eventTrigger('sizeChange', { ...options })
+  }
+
   startCropMode() {
     if (this.canvasStatus) {
       this.resetCanvasStatus();
@@ -45,7 +56,7 @@ export class Graphics {
     }
   }
 
-  private saveCanvasStatus() {
+  saveCanvasStatus() {
     this.canvasStatus = {
       width: this.canvas.getWidth(),
       height: this.canvas.getHeight(),
@@ -53,10 +64,22 @@ export class Graphics {
     };
   }
 
-  private resetCanvasStatus() {
+  resetCanvasStatus() {
     if (!this.canvasStatus) return;
 
-    this.canvas.setDimensions(this.canvasStatus);
+    this.setCanvasSize(this.canvasStatus);
     this.image?.scale(this.canvasStatus.scale).center();
+  }
+
+  eventTrigger(name: EventType, ...args: any[]) {
+    this.listeners[name].forEach(cb => cb(...args));
+  }
+
+  addEventListener(name: EventType, handler: Function) {
+    this.listeners[name].push(handler);
+  }
+
+  removeEventListener(name: EventType, handler: Function) {
+    this.listeners[name] = this.listeners[name].filter(cb => cb !== handler);
   }
 }
