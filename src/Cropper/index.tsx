@@ -29,11 +29,11 @@ type Num2 = [number, number];
 
 const borderWidth = 2;
 
-const initBoxSize = (dimension: Rect) => ({
+const initBoxSize = (dimension: Rect, ratio: number) => ({
   width: dimension.width,
   height: dimension.height,
-  top: dimension.top - borderWidth,
-  left: dimension.left - borderWidth,
+  top: dimension.top - borderWidth * ratio,
+  left: dimension.left - borderWidth * ratio,
 });
 
 const calculateDimensino = (dx: number, dy: number, current: Rect, side: Sides, limit: Num4) => {
@@ -131,19 +131,23 @@ const Cropper: React.FC<IProps> = ({
 }) => {
   const [dragging, setDragging] = useState<Sides>();
 
-  const boxStyle = useRef(initBoxSize(dimension));
+  const boxStyle = useRef(initBoxSize(dimension, 1));
 
   const boxRef = useRef<HTMLDivElement>(null);
   const positinoRef = useRef<{ x: number, y: number, side?: Sides }>({ x: 0, y: 0});
 
   const outPosRef = useRef({ x: 0, y: 0 });
+  // 移动canvas时的定位原点
   const outTempRef = useRef({ x: 0, y: 0 });
 
+  // 限制拖拽范围
   const limitRef = useRef<Num4>([0, 0, 0, 0]);
 
+  // 计算缩放比例造成的拖拽长度
   const realTimeScaleRef = useRef(1);
   const stageScaleRef = useRef(1);
 
+  // 操作移动选框
   const moveBox = useCallback((rect: Rect) => {
     boxRef.current!.style.width = `${rect.width}px`;
     boxRef.current!.style.height = `${rect.height}px`;
@@ -151,6 +155,7 @@ const Cropper: React.FC<IProps> = ({
     boxRef.current!.style.left = `${rect.left}px`;
   }, []);
 
+  // 鼠标按下
   const mouseDownHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
     positinoRef.current.x = e.clientX;
     positinoRef.current.y = e.clientY;
@@ -167,6 +172,7 @@ const Cropper: React.FC<IProps> = ({
     document.addEventListener('mouseup', mouseUpHandler);
   };
 
+  // 鼠标移动（拖拽）
   const mouseMoveHandler = (e: MouseEvent) => {
     let dScale = 1;
     if (stageScaleRef.current > 1) {
@@ -189,12 +195,14 @@ const Cropper: React.FC<IProps> = ({
       const newScale = getScale(rect.width, rect.height, dimension.maxWidth, dimension.maxHeight);
       realTimeScaleRef.current = newScale;
 
+      // 放大时实时更新canvas缩放
       if (stageScaleRef.current > 1 && newScale < stageScaleRef.current) {
         commitMovement(rect);
       }
     }
   };
 
+  // 鼠标抬起
   const mouseUpHandler = () => {
     if (positinoRef.current.side === 'move') {
       outPosRef.current.x += outTempRef.current.x;
@@ -206,24 +214,28 @@ const Cropper: React.FC<IProps> = ({
       boxStyle.current.left = converPxToNumber(boxRef.current?.style.left);
       stageScaleRef.current = commitMovement(boxStyle.current).scale;
     }
-    onCrop(boxStyle.current);
+    onCrop(initBoxSize(boxStyle.current, -1));
     setDragging(undefined);
     document.removeEventListener('mousemove', mouseMoveHandler);
     document.removeEventListener('mouseup', mouseUpHandler);
   };
 
+  // 改变整体缩放
   const commitMovement = (rect: Rect) => {
     const transformInfo = getScaleAndTranslation(rect, dimension);
     onCommit(transformInfo);
     return transformInfo;
   };
 
+  // TODO canvas大小改变时(旋转)，重置选框大小及位置
   useEffect(() => {
-    boxStyle.current = initBoxSize(dimension);
+    boxStyle.current = initBoxSize(dimension, 1);
     moveBox(boxStyle.current);
+    onCrop(dimension);
+    outPosRef.current = { x: 0, y: 0 };
     realTimeScaleRef.current = 1;
     stageScaleRef.current = 1;
-  }, [moveBox, dimension]);
+  }, [dimension]);
 
   return (
     <div
