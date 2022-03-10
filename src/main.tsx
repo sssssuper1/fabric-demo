@@ -25,10 +25,12 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
   const rectRef = useRef<Rect | null>(null);
 
   const [dimension, setDimension] = useState<Rect & Boundary>();
+  const [pause, setPause] = useState(true);
 
   const startCrop = useCallback(() => {
     const { width, height } = imageEditor.current!.getCanvasSize();
-    setDimension({
+    imageEditor.current?.setMode('crop');
+    setDimension(pre => pre || {
       top: 0,
       left: 0,
       width,
@@ -36,6 +38,7 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
       maxWidth: contentRef.current!.clientWidth,
       maxHeight: contentRef.current!.clientHeight,
     });
+    setPause(false);
   }, []);
 
   const onMove = useCallback((x: number, y: number) => {
@@ -50,18 +53,13 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
     rectRef.current = { ...rect };
   }, []);
 
-  const cancelCropMode = useCallback(() => {
-    setDimension(undefined);
-    transformRef.current!.style.transform = 'none';
-    groupRef.current!.style.transform = 'none';
-  }, []);
-
   const applyCrop = useCallback(() => {
     if (!rectRef.current) return;
+
     const { left, top, width, height } = rectRef.current;
     imageEditor.current?.crop(left, top, width, height);
-    cancelCropMode();
-  }, [cancelCropMode]);
+    setPause(true);
+  }, []);
 
   useEffect(() => {
     if (imageEditor.current) return;
@@ -82,13 +80,14 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
   }));
 
   return (
-    <div className='content' ref={contentRef}>
-      <div className='group' ref={groupRef}>
-        <div ref={transformRef}>
+    <div className="content" ref={contentRef}>
+      <div className={`group ${pause ? 'pause' : ''}`} ref={groupRef}>
+        <div  className={`${pause ? 'pause' : ''}`} ref={transformRef}>
           <canvas ref={canvasRef} />
         </div>
         {dimension && (
           <Cropper
+            visible={!pause}
             dimension={dimension}
             onMove={onMove}
             onCommit={onCommit}

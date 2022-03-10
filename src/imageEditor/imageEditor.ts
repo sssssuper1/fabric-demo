@@ -79,6 +79,9 @@ export default class ImageEditor {
 
   setMode(mode: Mode) {
     this.mode = mode;
+    if (mode === 'crop') {
+      this.graphics.startCropMode();
+    }
   }
 
   setFilter(filter: FilterType, options?: FilterOptions) {
@@ -95,6 +98,7 @@ export default class ImageEditor {
 
   crop(x: number, y: number, w: number, h: number) {
     this.execute('crop', { x, y, w, h });
+    this.setMode('normal');
   }
 
   // test >>>>>>>>>>>

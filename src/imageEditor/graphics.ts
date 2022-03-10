@@ -9,6 +9,9 @@ export class Graphics {
   image?: fabric.Image;
   maxWidth?: number;
   maxHeight?: number;
+
+  private canvasStatus?: fabric.ICanvasDimensions & { scale: number };
+
   componentsMap = {
     FILTER: new Filter(this),
     FLIP: new Filp(this),
@@ -32,5 +35,28 @@ export class Graphics {
 
   getImage() {
     return this.image!;
+  }
+
+  startCropMode() {
+    if (this.canvasStatus) {
+      this.resetCanvasStatus();
+    } else {
+      this.saveCanvasStatus();
+    }
+  }
+
+  private saveCanvasStatus() {
+    this.canvasStatus = {
+      width: this.canvas.getWidth(),
+      height: this.canvas.getHeight(),
+      scale: this.image?.scaleX || 1,
+    };
+  }
+
+  private resetCanvasStatus() {
+    if (!this.canvasStatus) return;
+
+    this.canvas.setDimensions(this.canvasStatus);
+    this.image?.scale(this.canvasStatus.scale).center();
   }
 }

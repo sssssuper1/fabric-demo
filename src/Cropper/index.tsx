@@ -14,6 +14,7 @@ export interface Rect {
 }
  
 export interface IProps {
+  visible: boolean;
   dimension: Rect & Boundary;
   onMove(x: number, y: number): void;
   onCommit(rect: ReturnType<typeof getScaleAndTranslation>): void;
@@ -115,6 +116,7 @@ const getScaleAndTranslation = (inner: Rect, outer: Rect & Boundary) => {
 };
 
 const Cropper: React.FC<IProps> = ({
+  visible,
   dimension,
   onMove,
   onCommit,
@@ -208,17 +210,15 @@ const Cropper: React.FC<IProps> = ({
   const commitMovement = (rect: Rect) => {
     const transformInfo = getScaleAndTranslation(rect, dimension);
     onCommit(transformInfo);
-    // scaleRef.current = transformInfo.scale;
     return transformInfo;
   };
-
-  // const throttledCommitMovement = throttle(commitMovement, 100);
 
   return (
     <div
       className='cropper-box'
       ref={boxRef}
       style={{
+        display: visible ? 'block' : 'none',
         ...boxStyle,
         borderWidth,
       }}
