@@ -19,6 +19,7 @@
   filter: drop-shadow(0 0 2px rgba(0,0,0,.3));
   cursor: nwse-resize;
   transition: .2s ease;
+  user-select: none;
 }
 
 .cropper-grip::before {

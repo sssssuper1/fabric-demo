@@ -1,10 +1,11 @@
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ImageEditor from './imageEditor/imageEditor';
-import Cropper, { Rect, Boundary } from './Cropper';
+import Cropper, { Rect, Boundary, Ratio } from './Cropper';
 import './main.css';
 
 interface IProps {
   url: string;
+  cropRatio?: Ratio;
 }
 
 export interface ImageEditorRef {
@@ -15,6 +16,7 @@ export interface ImageEditorRef {
 
 const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
   url,
+  cropRatio,
 }, ref) => {
   const imageEditor = useRef<ImageEditor | null>(null);
 
@@ -115,6 +117,7 @@ const Editor: React.ForwardRefRenderFunction<ImageEditorRef, IProps> = ({
           <Cropper
             visible={!pause}
             dimension={dimension}
+            ratio={cropRatio}
             onMove={onMove}
             onCommit={onCommit}
             onCrop={onCrop}

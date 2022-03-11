@@ -1,6 +1,12 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import './index.css';
 
+type Sides = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se" | "move";
+
+type Num4 = [number, number, number, number];
+
+type Num2 = [number, number];
+
 export interface Boundary {
   maxWidth: number;
   maxHeight: number;
@@ -12,20 +18,17 @@ export interface Rect {
   top: number;
   left: number;
 }
+
+export type Ratio = `${number}x${number}`;
  
 export interface IProps {
   visible: boolean;
   dimension: Rect & Boundary;
+  ratio?: Ratio;
   onMove(x: number, y: number): void;
   onCommit(rect: ReturnType<typeof getScaleAndTranslation>): void;
   onCrop(rect: Rect): void;
 }
-
-type Sides = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se" | "move";
-
-type Num4 = [number, number, number, number];
-
-type Num2 = [number, number];
 
 const borderWidth = 2;
 
@@ -36,27 +39,59 @@ const initBoxSize = (dimension: Rect, ratio: number) => ({
   left: dimension.left - borderWidth * ratio,
 });
 
+const getAspectByRatio = (x: number, y: number, tx: number, ty: number) => {
+  const rectScale = tx / ty;
+  const offsetScale = x / y;
+  const sign = offsetScale > 0 ? 1 : -1;
+
+  if (Math.abs(offsetScale) > rectScale) {
+    x = Math.round(y * rectScale * sign);
+  } else if (Math.abs(offsetScale) < rectScale) {
+    y = Math.round(x / rectScale * sign);
+  }
+
+  return [x, y];
+};
+
 const calculateDimensino = (dx: number, dy: number, current: Rect, side: Sides, limit: Num4) => {
   const rect = { ...current };
+  let wOffset = dx;
+  let hOffset = dy;
+
+  const applyRect: Array<() => void> = [];
+
   if (side.includes('s')) {
-    rect.height += Math.min(dy, limit[3]);
+    hOffset = Math.min(dy, limit[3]);
+    applyRect.push(() => rect.height += hOffset);
   }
 
   if (side.includes('e')) {
-    rect.width += Math.min(dx, limit[1]);
+    wOffset = Math.min(dx, limit[1]);
+    applyRect.push(() => rect.width += wOffset);
   }
 
   if (side.includes('n')) {
-    const limitedDy = Math.max(dy, limit[2]);
-    rect.top += limitedDy;
-    rect.height -= limitedDy;
+    hOffset = Math.max(dy, limit[2]);
+    applyRect.push(() => {
+      rect.top += hOffset;
+      rect.height -= hOffset;
+    });
   }
 
   if (side.includes('w')) {
-    const limitedDx = Math.max(dx, limit[0]);
-    rect.left += limitedDx;
-    rect.width -= limitedDx;
+    wOffset = Math.max(dx, limit[0]);
+    applyRect.push(() => {
+      rect.left += wOffset;
+      rect.width -= wOffset;
+    });
   }
+
+  // 等比例缩放
+  if (applyRect.length === 2) {
+    [wOffset, hOffset] = getAspectByRatio(wOffset, hOffset, current.width, current.height);
+  }
+
+  applyRect.forEach(cb => cb());
 
   return rect;
 };
@@ -125,6 +160,7 @@ const getScaleAndTranslation = (inner: Rect, outer: Rect & Boundary) => {
 const Cropper: React.FC<IProps> = ({
   visible,
   dimension,
+  ratio,
   onMove,
   onCommit,
   onCrop,
@@ -148,11 +184,18 @@ const Cropper: React.FC<IProps> = ({
   const stageScaleRef = useRef(1);
 
   // 操作移动选框
-  const moveBox = useCallback((rect: Rect) => {
-    boxRef.current!.style.width = `${rect.width}px`;
-    boxRef.current!.style.height = `${rect.height}px`;
-    boxRef.current!.style.top = `${rect.top}px`;
-    boxRef.current!.style.left = `${rect.left}px`;
+  const moveBox = useCallback((rect: Partial<Rect>) => {
+    if (rect.width) boxRef.current!.style.width = `${rect.width}px`;
+    if (rect.height) boxRef.current!.style.height = `${rect.height}px`;
+    if (rect.top) boxRef.current!.style.top = `${rect.top}px`;
+    if (rect.left) boxRef.current!.style.left = `${rect.left}px`;
+  }, []);
+
+  const regressBoxStype = useCallback(() => {
+    boxStyle.current.width = boxRef.current!.clientWidth;
+    boxStyle.current.height = boxRef.current!.clientHeight;
+    boxStyle.current.top = converPxToNumber(boxRef.current?.style.top);
+    boxStyle.current.left = converPxToNumber(boxRef.current?.style.left);
   }, []);
 
   // 鼠标按下
@@ -208,10 +251,7 @@ const Cropper: React.FC<IProps> = ({
       outPosRef.current.x += outTempRef.current.x;
       outPosRef.current.y += outTempRef.current.y;
     } else {
-      boxStyle.current.width = boxRef.current!.clientWidth;
-      boxStyle.current.height = boxRef.current!.clientHeight;
-      boxStyle.current.top = converPxToNumber(boxRef.current?.style.top);
-      boxStyle.current.left = converPxToNumber(boxRef.current?.style.left);
+      regressBoxStype();
       stageScaleRef.current = commitMovement(boxStyle.current).scale;
     }
     onCrop(initBoxSize(boxStyle.current, -1));
@@ -221,11 +261,11 @@ const Cropper: React.FC<IProps> = ({
   };
 
   // 改变整体缩放
-  const commitMovement = (rect: Rect) => {
+  const commitMovement = useCallback((rect: Rect) => {
     const transformInfo = getScaleAndTranslation(rect, dimension);
     onCommit(transformInfo);
     return transformInfo;
-  };
+  }, [onCommit]);
 
   // TODO canvas大小改变时(旋转)，重置选框大小及位置
   useEffect(() => {
@@ -237,6 +277,18 @@ const Cropper: React.FC<IProps> = ({
     stageScaleRef.current = 1;
   }, [dimension]);
 
+  useEffect(() => {
+    if (!ratio) return;
+    const { width, height } = boxStyle.current;
+    const [x, y] = ratio.split('x').map(Number);
+
+    const [w, h] = getAspectByRatio(width, height, x, y);
+
+    moveBox({ width: w, height: h });
+    regressBoxStype();
+    stageScaleRef.current = commitMovement(boxStyle.current).scale;
+  }, [ratio]);
+
   return (
     <div
       className='cropper-box'
@@ -247,13 +299,13 @@ const Cropper: React.FC<IProps> = ({
         borderWidth,
       }}
     >
-      <i style={getDisplayStyle('s', dragging)} data-side="s" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-s cropper-grip-h' />
+      {!ratio && <i style={getDisplayStyle('s', dragging)} data-side="s" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-s cropper-grip-h' />}
       <i style={getDisplayStyle('sw', dragging)} data-side="sw" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-sw cropper-grip-h cropper-grip-v' />
-      <i style={getDisplayStyle('w', dragging)} data-side="w" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-w cropper-grip-v' />
+      {!ratio && <i style={getDisplayStyle('w', dragging)} data-side="w" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-w cropper-grip-v' />}
       <i style={getDisplayStyle('nw', dragging)} data-side="nw" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-nw cropper-grip-h cropper-grip-v' />
-      <i style={getDisplayStyle('n', dragging)} data-side="n" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-n cropper-grip-h' />
+      {!ratio && <i style={getDisplayStyle('n', dragging)} data-side="n" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-n cropper-grip-h' />}
       <i style={getDisplayStyle('ne', dragging)} data-side="ne" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-ne cropper-grip-h cropper-grip-v' />
-      <i style={getDisplayStyle('e', dragging)} data-side="e" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-e cropper-grip-v' />
+      {!ratio && <i style={getDisplayStyle('e', dragging)} data-side="e" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-e cropper-grip-v' />}
       <i style={getDisplayStyle('se', dragging)} data-side="se" onMouseDownCapture={mouseDownHandler} className='cropper-grip cropper-grip-se cropper-grip-h cropper-grip-v' />
       <div data-side="move" onMouseDownCapture={mouseDownHandler} className='cropper-inner' />
     </div>
