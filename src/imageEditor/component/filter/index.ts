@@ -6,7 +6,7 @@ import { BaseComponent } from "..";
 import './redify';
 import './sharpen';
 
-export type FilterType = 'Brightness' | 'Contrast' | 'Saturation' | 'Redify' | 'Sharpen';
+export type FilterType = 'Brightness' | 'Contrast' | 'Saturation' | 'Redify' | 'Sharpen' | 'Gamma';
 
 export type FilterOptions = {
   brightness: number; // -1 ~ 1
@@ -14,6 +14,8 @@ export type FilterOptions = {
   contrast?: number; // -1 ~ 1
 } | {
   saturation?: number; // -1 ~ 1
+} | {
+  gamma?: [number, number, number];
 }
 
 export interface BaseFilterConfig {

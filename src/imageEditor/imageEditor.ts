@@ -14,9 +14,11 @@ interface ImageEitorConstructor {
 
 export type Mode = 'normal' | 'crop' | 'mosaic';
 
+fabric.textureSize = 5168;
 const squareEdgeLength  = 10;
 
 const { devicePixelRatio } = window;
+
 
 export default class ImageEditor {
   canvas: fabric.Canvas;
@@ -112,11 +114,18 @@ export default class ImageEditor {
   // test >>>>>>>>>>>
 
   test() {
-    // this.image!.left = -1091;
-    // this.image!.top = -768;
-    // this.image!.top = 0;
-    this.image!.scale(1);
-    this.image!.rotate(90);
+    const rect = new fabric.Rect({
+      top: 100,
+      left: 100,
+      width: 100,
+      height: 100,
+      fill: 'red',
+      hasRotatingPoint: false,
+    });
+
+    rect.setControlsVisibility({ mtr: false });
+    this.canvas.add(rect);
+
     this.reRender();
   }
 

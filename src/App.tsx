@@ -1,14 +1,15 @@
 import React, { useRef } from 'react';
 import ImageEditor, { ImageEditorRef } from './main';
+// import Op from './opacity.png';
 import './App.css';
 
-const demo = 'https://s.newscdn.cn/file/2022/02/17ecd7bb-6475-4dad-8662-af0f935cb60a.jpeg';
+const demo = 'https://s.newscdn.cn/file/2022/03/29ae2d70-ff9d-4786-8bea-6f51836d570e.jpg';
 
 function App() {
   const imageEditor = useRef<ImageEditorRef>(null);
 
   const addFilter = () => {
-    imageEditor.current?.getEditor().setFilter('Sharpen');
+    imageEditor.current?.getEditor().setFilter('Gamma', { gamma: [2, 1, 0.2] });
   };
 
   const rotate = () => {
